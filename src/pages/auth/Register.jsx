@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import RoleSelector from '../../components/RoleSelector';
+import Toast from '../../components/Toast';
 import {
   UserIcon,
   EnvelopeIcon,
@@ -17,6 +18,8 @@ const Register = () => {
     password: '',
     confirmPassword: '',
   });
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState(null);
   const { register } = useAuth();
   const navigate = useNavigate();
 
@@ -37,26 +40,77 @@ const Register = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match!');
+      setToast({
+        type: 'error',
+        message: 'Passwords do not match!',
+      });
       return;
     }
 
-    // Mock registration
-    register(formData.name, formData.email, formData.password, role);
+    // Validate password length
+    if (formData.password.length < 6) {
+      setToast({
+        type: 'error',
+        message: 'Password must be at least 6 characters long.',
+      });
+      return;
+    }
 
-    // Navigate based on role
-    switch (role) {
-      case 'developer':
-        navigate('/developer/dashboard');
-        break;
-      case 'recruiter':
-        navigate('/recruiter/dashboard');
-        break;
-      default:
-        navigate('/');
+    setLoading(true);
+    setToast(null);
+
+    try {
+      const userData = await register(
+        formData.name,
+        formData.email,
+        formData.password,
+        role
+      );
+
+      // Show success message
+      setToast({
+        type: 'success',
+        message: 'Account created successfully! Redirecting...',
+      });
+
+      // Navigate based on role after a short delay
+      setTimeout(() => {
+        switch (userData.role) {
+          case 'developer':
+            navigate('/developer/dashboard');
+            break;
+          case 'recruiter':
+            navigate('/recruiter/dashboard');
+            break;
+          default:
+            navigate('/');
+        }
+      }, 1000);
+    } catch (error) {
+      // Handle different error types
+      let errorMessage = 'Registration failed. Please try again.';
+
+      if (error.status === 400) {
+        errorMessage = error.message || 'Please check your input fields.';
+      } else if (error.status === 409) {
+        errorMessage = 'An account with this email already exists.';
+      } else if (error.status === 0) {
+        errorMessage = 'Cannot connect to server. Please try again later.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      setToast({
+        type: 'error',
+        message: errorMessage,
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -134,6 +188,7 @@ const Register = () => {
                     placeholder="John Doe"
                     className="w-full pl-10 pr-4 py-3 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                     required
+                    disabled={loading}
                   />
                 </div>
               </div>
@@ -152,6 +207,7 @@ const Register = () => {
                     placeholder="you@example.com"
                     className="w-full pl-10 pr-4 py-3 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                     required
+                    disabled={loading}
                   />
                 </div>
               </div>
@@ -170,8 +226,13 @@ const Register = () => {
                     placeholder="••••••••"
                     className="w-full pl-10 pr-4 py-3 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                     required
+                    minLength={6}
+                    disabled={loading}
                   />
                 </div>
+                <p className="mt-1 text-xs text-textSecondary">
+                  Must be at least 6 characters
+                </p>
               </div>
 
               <div>
@@ -188,6 +249,7 @@ const Register = () => {
                     placeholder="••••••••"
                     className="w-full pl-10 pr-4 py-3 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                     required
+                    disabled={loading}
                   />
                 </div>
               </div>
@@ -196,15 +258,17 @@ const Register = () => {
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                  className="flex-1 bg-gray-100 text-textPrimary py-3 rounded-lg hover:bg-gray-200 transition-colors font-semibold"
+                  disabled={loading}
+                  className="flex-1 bg-gray-100 text-textPrimary py-3 rounded-lg hover:bg-gray-200 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Back
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 bg-primary text-white py-3 rounded-lg hover:bg-primary/90 transition-colors font-semibold"
+                  disabled={loading}
+                  className="flex-1 bg-primary text-white py-3 rounded-lg hover:bg-primary/90 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Create Account
+                  {loading ? 'Creating Account...' : 'Create Account'}
                 </button>
               </div>
             </form>
@@ -223,6 +287,15 @@ const Register = () => {
           </div>
         </div>
       </div>
+
+      {/* Toast notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 };

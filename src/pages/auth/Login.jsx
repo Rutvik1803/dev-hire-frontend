@@ -2,32 +2,67 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { EnvelopeIcon, LockClosedIcon } from '@heroicons/react/24/outline';
+import Toast from '../../components/Toast';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('developer');
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState(null);
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Mock login
-    login(email, password, role);
+    setLoading(true);
+    setToast(null);
 
-    // Navigate based on role
-    switch (role) {
-      case 'developer':
-        navigate('/developer/dashboard');
-        break;
-      case 'recruiter':
-        navigate('/recruiter/dashboard');
-        break;
-      case 'admin':
-        navigate('/admin/dashboard');
-        break;
-      default:
-        navigate('/');
+    try {
+      const userData = await login(email, password, role);
+
+      // Show success message
+      setToast({
+        type: 'success',
+        message: 'Login successful! Redirecting...',
+      });
+
+      // Navigate based on role after a short delay
+      setTimeout(() => {
+        switch (userData.role) {
+          case 'developer':
+            navigate('/developer/dashboard');
+            break;
+          case 'recruiter':
+            navigate('/recruiter/dashboard');
+            break;
+          case 'admin':
+            navigate('/admin/dashboard');
+            break;
+          default:
+            navigate('/');
+        }
+      }, 1000);
+    } catch (error) {
+      // Handle different error types
+      let errorMessage = 'Login failed. Please try again.';
+
+      if (error.status === 400) {
+        errorMessage = 'Please check your email and password.';
+      } else if (error.status === 401) {
+        errorMessage = 'Invalid credentials or role mismatch.';
+      } else if (error.status === 0) {
+        errorMessage = 'Cannot connect to server. Please try again later.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      setToast({
+        type: 'error',
+        message: errorMessage,
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -45,15 +80,16 @@ const Login = () => {
 
         <div className="bg-surface rounded-2xl shadow-lg border border-border p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Role Selection for Demo */}
+            {/* Role Selection */}
             <div>
               <label className="block text-sm font-medium text-textPrimary mb-2">
-                Login as (Demo)
+                Login as
               </label>
               <select
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
                 className="w-full px-4 py-3 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary"
+                disabled={loading}
               >
                 <option value="developer">Developer</option>
                 <option value="recruiter">Recruiter</option>
@@ -74,6 +110,7 @@ const Login = () => {
                   placeholder="you@example.com"
                   className="w-full pl-10 pr-4 py-3 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                   required
+                  disabled={loading}
                 />
               </div>
             </div>
@@ -91,6 +128,7 @@ const Login = () => {
                   placeholder="••••••••"
                   className="w-full pl-10 pr-4 py-3 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                   required
+                  disabled={loading}
                 />
               </div>
             </div>
@@ -100,6 +138,7 @@ const Login = () => {
                 <input
                   type="checkbox"
                   className="rounded border-border text-primary focus:ring-primary"
+                  disabled={loading}
                 />
                 <span className="ml-2 text-sm text-textSecondary">
                   Remember me
@@ -112,9 +151,10 @@ const Login = () => {
 
             <button
               type="submit"
-              className="w-full bg-primary text-white py-3 rounded-lg hover:bg-primary/90 transition-colors font-semibold"
+              disabled={loading}
+              className="w-full bg-primary text-white py-3 rounded-lg hover:bg-primary/90 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Sign In
+              {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
 
@@ -130,11 +170,16 @@ const Login = () => {
             </p>
           </div>
         </div>
-
-        <p className="text-center text-sm text-textSecondary mt-6">
-          This is a demo. Any email/password will work.
-        </p>
       </div>
+
+      {/* Toast notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 };

@@ -1,4 +1,5 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
+import * as authService from '../services/authService';
 
 const AuthContext = createContext();
 
@@ -11,37 +12,98 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  // Mock authentication state
-  // Change this to test different roles: 'developer', 'recruiter', 'admin', or null
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const login = (email, password, role) => {
-    // Mock login - in real app, this would call an API
-    setUser({
-      id: 1,
-      name:
-        role === 'admin'
-          ? 'Admin User'
-          : role === 'recruiter'
-          ? 'Recruiter User'
-          : 'Developer User',
-      email: email,
-      role: role,
-    });
+  // Check for stored user data on mount
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser && authService.isAuthenticated()) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (error) {
+        console.error('Failed to parse stored user data:', error);
+        localStorage.removeItem('user');
+      }
+    }
+    setLoading(false);
+  }, []);
+
+  /**
+   * Login user with API
+   * @param {string} email
+   * @param {string} password
+   * @param {string} role - DEVELOPER, RECRUITER, or ADMIN
+   * @returns {Promise<object>} User data
+   * @throws {Error} If login fails
+   */
+  const login = async (email, password, role) => {
+    try {
+      const data = await authService.login({
+        email,
+        password,
+        role: role.toUpperCase(),
+      });
+
+      // Store user data
+      const userData = {
+        id: data.user.id,
+        name: data.user.name,
+        email: data.user.email,
+        role: data.user.role.toLowerCase(),
+      };
+
+      setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
+
+      return userData;
+    } catch (error) {
+      throw error;
+    }
   };
 
-  const register = (name, email, password, role) => {
-    // Mock registration
-    setUser({
-      id: Date.now(),
-      name: name,
-      email: email,
-      role: role,
-    });
+  /**
+   * Register new user with API
+   * @param {string} name
+   * @param {string} email
+   * @param {string} password
+   * @param {string} role - developer or recruiter
+   * @returns {Promise<object>} User data
+   * @throws {Error} If registration fails
+   */
+  const register = async (name, email, password, role) => {
+    try {
+      const data = await authService.signUp({
+        name,
+        email,
+        password,
+        role: role.toUpperCase(),
+      });
+
+      // Store user data
+      const userData = {
+        id: data.user.id,
+        name: data.user.name,
+        email: data.user.email,
+        role: data.user.role.toLowerCase(),
+      };
+
+      setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
+
+      return userData;
+    } catch (error) {
+      throw error;
+    }
   };
 
+  /**
+   * Logout user
+   */
   const logout = () => {
+    authService.logout();
     setUser(null);
+    localStorage.removeItem('user');
   };
 
   const value = {
@@ -50,6 +112,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     isAuthenticated: !!user,
+    loading,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
