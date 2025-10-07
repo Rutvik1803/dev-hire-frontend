@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
-import { getJobById, updateJob, convertJobType, JOB_TYPES } from '../../services/jobService';
+import {
+  getJobById,
+  updateJob,
+  convertJobType,
+  JOB_TYPES,
+} from '../../services/jobService';
 import Loading from '../../components/Loading';
 import Toast from '../../components/Toast';
 
@@ -30,7 +35,7 @@ const EditJob = () => {
     try {
       setLoading(true);
       const job = await getJobById(id);
-      
+
       // Populate form with existing job data
       setFormData({
         title: job.title || '',
@@ -129,7 +134,8 @@ const EditJob = () => {
       } else if (err.status === 404) {
         errorMessage = 'Job not found.';
       } else if (err.status === 400) {
-        errorMessage = err.message || 'Invalid job data. Please check your inputs.';
+        errorMessage =
+          err.message || 'Invalid job data. Please check your inputs.';
       } else if (err.message) {
         errorMessage = err.message;
       }

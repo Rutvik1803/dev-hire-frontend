@@ -61,7 +61,9 @@ const ApplicantDetails = () => {
       );
       setStatus(newStatus);
       setApplication({ ...application, status: newStatus });
-      setToastMessage(`Application status updated to ${getStatusDisplay(newStatus)}`);
+      setToastMessage(
+        `Application status updated to ${getStatusDisplay(newStatus)}`
+      );
       setToastType('success');
       setShowToast(true);
     } catch (err) {
@@ -150,7 +152,8 @@ const ApplicantDetails = () => {
           <div className="flex items-center text-textSecondary">
             <CalendarIcon className="w-5 h-5 mr-3 flex-shrink-0" />
             <span>
-              Applied on {new Date(application.appliedDate).toLocaleDateString()}
+              Applied on{' '}
+              {new Date(application.appliedDate).toLocaleDateString()}
             </span>
           </div>
           <div className="flex items-center text-textSecondary">

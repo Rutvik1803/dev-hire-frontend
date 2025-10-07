@@ -2,7 +2,11 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeftIcon, BriefcaseIcon } from '@heroicons/react/24/outline';
 import { getJobById } from '../../services/jobService';
-import { getJobApplications, getStatusDisplay, getStatusColor } from '../../services/applicationService';
+import {
+  getJobApplications,
+  getStatusDisplay,
+  getStatusColor,
+} from '../../services/applicationService';
 import Loading from '../../components/Loading';
 import Toast from '../../components/Toast';
 
@@ -172,14 +176,16 @@ const JobApplicants = () => {
               {application.applicant.skills &&
                 application.applicant.skills.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-4">
-                    {application.applicant.skills.slice(0, 5).map((skill, idx) => (
-                      <span
-                        key={idx}
-                        className="px-2 py-1 bg-secondary/10 text-secondary rounded text-xs font-medium"
-                      >
-                        {skill}
-                      </span>
-                    ))}
+                    {application.applicant.skills
+                      .slice(0, 5)
+                      .map((skill, idx) => (
+                        <span
+                          key={idx}
+                          className="px-2 py-1 bg-secondary/10 text-secondary rounded text-xs font-medium"
+                        >
+                          {skill}
+                        </span>
+                      ))}
                     {application.applicant.skills.length > 5 && (
                       <span className="text-xs text-textSecondary">
                         +{application.applicant.skills.length - 5} more
@@ -190,7 +196,8 @@ const JobApplicants = () => {
 
               <div className="flex items-center justify-between pt-4 border-t border-border">
                 <span className="text-xs text-textSecondary">
-                  Applied {new Date(application.appliedDate).toLocaleDateString()}
+                  Applied{' '}
+                  {new Date(application.appliedDate).toLocaleDateString()}
                 </span>
                 <span className="text-primary text-sm font-medium hover:underline">
                   View Details →
@@ -204,7 +211,9 @@ const JobApplicants = () => {
           <p className="text-textSecondary text-lg">
             {statusFilter === 'ALL'
               ? 'No applications yet for this position'
-              : `No ${getStatusDisplay(statusFilter).toLowerCase()} applications`}
+              : `No ${getStatusDisplay(
+                  statusFilter
+                ).toLowerCase()} applications`}
           </p>
           <p className="text-textSecondary text-sm mt-2">
             {statusFilter === 'ALL'

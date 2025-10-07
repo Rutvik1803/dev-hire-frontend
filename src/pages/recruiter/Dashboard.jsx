@@ -6,7 +6,12 @@ import {
   ClockIcon,
   CheckCircleIcon,
 } from '@heroicons/react/24/outline';
-import { getDashboardStats, getRecentApplications, getStatusDisplay, getStatusColor } from '../../services/applicationService';
+import {
+  getDashboardStats,
+  getRecentApplications,
+  getStatusDisplay,
+  getStatusColor,
+} from '../../services/applicationService';
 import { getMyJobs } from '../../services/jobService';
 import Loading from '../../components/Loading';
 import Toast from '../../components/Toast';
@@ -190,7 +195,11 @@ const RecruiterDashboard = () => {
                     <h3 className="font-semibold text-textPrimary">
                       {application.applicant.name}
                     </h3>
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(application.status)}`}>
+                    <span
+                      className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(
+                        application.status
+                      )}`}
+                    >
                       {getStatusDisplay(application.status)}
                     </span>
                   </div>
@@ -198,7 +207,8 @@ const RecruiterDashboard = () => {
                     {application.job.title}
                   </p>
                   <p className="text-textSecondary text-xs mt-1">
-                    Applied {new Date(application.appliedDate).toLocaleDateString()}
+                    Applied{' '}
+                    {new Date(application.appliedDate).toLocaleDateString()}
                   </p>
                 </Link>
               ))

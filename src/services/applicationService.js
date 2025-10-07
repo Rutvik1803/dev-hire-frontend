@@ -15,7 +15,9 @@ export const getDashboardStats = async () => {
  * @returns {Promise<array>} Recent applications
  */
 export const getRecentApplications = async (limit = 10) => {
-  const response = await get(`/api/recruiter/applications/recent?limit=${limit}`);
+  const response = await get(
+    `/api/recruiter/applications/recent?limit=${limit}`
+  );
   return response.data;
 };
 
@@ -31,10 +33,12 @@ export const getJobApplications = async (jobId, options = {}) => {
   const params = new URLSearchParams();
   if (options.status) params.append('status', options.status);
   if (options.sort) params.append('sort', options.sort);
-  
+
   const queryString = params.toString();
-  const url = `/api/jobs/${jobId}/applications${queryString ? `?${queryString}` : ''}`;
-  
+  const url = `/api/jobs/${jobId}/applications${
+    queryString ? `?${queryString}` : ''
+  }`;
+
   const response = await get(url);
   return response.data;
 };
@@ -54,10 +58,12 @@ export const getAllApplications = async (options = {}) => {
   if (options.limit) params.append('limit', options.limit);
   if (options.offset) params.append('offset', options.offset);
   if (options.recent) params.append('recent', 'true');
-  
+
   const queryString = params.toString();
-  const url = `/api/recruiter/applications${queryString ? `?${queryString}` : ''}`;
-  
+  const url = `/api/recruiter/applications${
+    queryString ? `?${queryString}` : ''
+  }`;
+
   const response = await get(url);
   return response.data;
 };
@@ -79,7 +85,11 @@ export const getApplicationById = async (applicationId) => {
  * @param {string} note - Optional note about the status change
  * @returns {Promise<object>} Updated application
  */
-export const updateApplicationStatus = async (applicationId, status, note = '') => {
+export const updateApplicationStatus = async (
+  applicationId,
+  status,
+  note = ''
+) => {
   const response = await patch(`/api/applications/${applicationId}/status`, {
     status,
     note,

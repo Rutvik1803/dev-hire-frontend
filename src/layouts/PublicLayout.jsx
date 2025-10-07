@@ -13,7 +13,10 @@ const PublicLayout = () => {
   }
 
   // If user is already logged in and trying to access login/register pages
-  if (user && (location.pathname === '/login' || location.pathname === '/register')) {
+  if (
+    user &&
+    (location.pathname === '/login' || location.pathname === '/register')
+  ) {
     // Redirect to appropriate dashboard based on role
     const dashboardPath = `/${user.role}/dashboard`;
     return <Navigate to={dashboardPath} replace />;
