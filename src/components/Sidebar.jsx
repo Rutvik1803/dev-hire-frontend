@@ -7,6 +7,7 @@ import {
   UsersIcon,
   PlusCircleIcon,
   Cog6ToothIcon,
+  ClipboardDocumentListIcon,
 } from '@heroicons/react/24/outline';
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
@@ -16,6 +17,11 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const getDeveloperLinks = () => [
     { to: '/developer/dashboard', icon: HomeIcon, label: 'Dashboard' },
     { to: '/developer/jobs', icon: BriefcaseIcon, label: 'Browse Jobs' },
+    {
+      to: '/developer/applications',
+      icon: ClipboardDocumentListIcon,
+      label: 'My Applications',
+    },
     { to: '/developer/resume', icon: DocumentTextIcon, label: 'My Resume' },
   ];
 

@@ -16,6 +16,7 @@ import DeveloperDashboard from './pages/developer/Dashboard';
 import DeveloperJobs from './pages/developer/Jobs';
 import JobDetails from './pages/developer/JobDetails';
 import Resume from './pages/developer/Resume';
+import MyApplications from './pages/developer/MyApplications';
 
 // Recruiter Pages
 import RecruiterDashboard from './pages/recruiter/Dashboard';
@@ -50,6 +51,10 @@ function App() {
             />
             <Route path="/developer/jobs" element={<DeveloperJobs />} />
             <Route path="/developer/jobs/:id" element={<JobDetails />} />
+            <Route
+              path="/developer/applications"
+              element={<MyApplications />}
+            />
             <Route path="/developer/resume" element={<Resume />} />
           </Route>
 

@@ -7,19 +7,29 @@ import {
   CalendarIcon,
   ArrowLeftIcon,
   PaperAirplaneIcon,
+  CheckCircleIcon,
 } from '@heroicons/react/24/outline';
 import Toast from '../../components/Toast';
 import Loading from '../../components/Loading';
+import StatusBadge from '../../components/StatusBadge';
 import {
   getJobById,
   convertJobTypeToFrontend,
 } from '../../services/jobService';
+import {
+  checkApplicationStatus,
+  applyToJob,
+} from '../../services/developerService';
 
 const JobDetails = () => {
   const { id } = useParams();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
+  const [applicationStatus, setApplicationStatus] = useState(null);
+  const [applying, setApplying] = useState(false);
+  const [showCoverLetterModal, setShowCoverLetterModal] = useState(false);
+  const [coverLetter, setCoverLetter] = useState('');
 
   useEffect(() => {
     fetchJobDetails();
@@ -28,8 +38,13 @@ const JobDetails = () => {
   const fetchJobDetails = async () => {
     setLoading(true);
     try {
-      const data = await getJobById(id);
-      setJob(data);
+      const [jobData, statusData] = await Promise.all([
+        getJobById(id),
+        checkApplicationStatus(id),
+      ]);
+
+      setJob(jobData);
+      setApplicationStatus(statusData);
     } catch (error) {
       let errorMessage = 'Failed to load job details.';
 
@@ -52,11 +67,54 @@ const JobDetails = () => {
     }
   };
 
-  const handleApply = () => {
-    setToast({
-      type: 'success',
-      message: 'Application submitted successfully!',
-    });
+  const handleApplyClick = () => {
+    setShowCoverLetterModal(true);
+  };
+
+  const handleApplySubmit = async () => {
+    if (!coverLetter.trim()) {
+      setToast({
+        type: 'error',
+        message: 'Please write a cover letter',
+      });
+      return;
+    }
+
+    setApplying(true);
+    try {
+      const result = await applyToJob(id, coverLetter);
+
+      setToast({
+        type: 'success',
+        message: 'Application submitted successfully!',
+      });
+
+      setShowCoverLetterModal(false);
+      setCoverLetter('');
+
+      // Refresh application status
+      const statusData = await checkApplicationStatus(id);
+      setApplicationStatus(statusData);
+    } catch (error) {
+      let errorMessage = 'Failed to submit application.';
+
+      if (error.status === 409) {
+        errorMessage = 'You have already applied to this job.';
+      } else if (error.status === 404) {
+        errorMessage = 'Job not found.';
+      } else if (error.status === 0) {
+        errorMessage = 'Cannot connect to server. Please try again later.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      setToast({
+        type: 'error',
+        message: errorMessage,
+      });
+    } finally {
+      setApplying(false);
+    }
   };
 
   if (loading) {
@@ -147,13 +205,25 @@ const JobDetails = () => {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4">
-          <button
-            onClick={handleApply}
-            className="flex-1 bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors font-semibold flex items-center justify-center gap-2"
-          >
-            <PaperAirplaneIcon className="w-5 h-5" />
-            Apply Now
-          </button>
+          {applicationStatus?.hasApplied ? (
+            <div className="flex-1 bg-green-50 border border-green-200 text-green-700 px-6 py-3 rounded-lg flex items-center justify-center gap-2">
+              <CheckCircleIcon className="w-5 h-5" />
+              <span className="font-semibold">Applied</span>
+              {applicationStatus.application && (
+                <StatusBadge status={applicationStatus.application.status} />
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={handleApplyClick}
+              disabled={applying}
+              className="flex-1 bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors font-semibold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <PaperAirplaneIcon className="w-5 h-5" />
+              {applying ? 'Applying...' : 'Apply Now'}
+            </button>
+          )}
+
           <button className="flex-1 bg-gray-100 text-textPrimary px-6 py-3 rounded-lg hover:bg-gray-200 transition-colors font-semibold">
             Save for Later
           </button>
@@ -179,6 +249,56 @@ const JobDetails = () => {
           </div>
         )}
       </div>
+
+      {/* Cover Letter Modal */}
+      {showCoverLetterModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-border">
+              <h2 className="text-2xl font-bold text-textPrimary">
+                Apply for {job.title}
+              </h2>
+              <p className="text-textSecondary mt-1">{job.companyName}</p>
+            </div>
+
+            <div className="p-6">
+              <label className="block text-sm font-semibold text-textPrimary mb-2">
+                Cover Letter <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                value={coverLetter}
+                onChange={(e) => setCoverLetter(e.target.value)}
+                placeholder="Tell the recruiter why you're a great fit for this role..."
+                rows={10}
+                className="w-full px-4 py-3 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+              />
+              <p className="text-sm text-textSecondary mt-2">
+                {coverLetter.length} characters
+              </p>
+            </div>
+
+            <div className="p-6 border-t border-border flex gap-3">
+              <button
+                onClick={() => {
+                  setShowCoverLetterModal(false);
+                  setCoverLetter('');
+                }}
+                disabled={applying}
+                className="flex-1 px-6 py-3 rounded-lg border border-border hover:bg-gray-50 transition-colors font-semibold disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleApplySubmit}
+                disabled={applying || !coverLetter.trim()}
+                className="flex-1 bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {applying ? 'Submitting...' : 'Submit Application'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Toast notification */}
       {toast && (

@@ -5,15 +5,26 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 
-const ResumeUploader = ({ onUpload }) => {
+const ResumeUploader = ({ onUpload, uploading = false }) => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    if (file && file.type === 'application/pdf') {
-      setSelectedFile(file);
-      if (onUpload) onUpload(file);
+    if (file) {
+      // Accept PDF, DOC, and DOCX files
+      const allowedTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      ];
+
+      if (allowedTypes.includes(file.type)) {
+        setSelectedFile(file);
+        if (onUpload) onUpload(file);
+      } else {
+        alert('Only PDF and DOC/DOCX files are allowed');
+      }
     }
   };
 
@@ -30,9 +41,20 @@ const ResumeUploader = ({ onUpload }) => {
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files[0];
-    if (file && file.type === 'application/pdf') {
-      setSelectedFile(file);
-      if (onUpload) onUpload(file);
+
+    if (file) {
+      const allowedTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      ];
+
+      if (allowedTypes.includes(file.type)) {
+        setSelectedFile(file);
+        if (onUpload) onUpload(file);
+      } else {
+        alert('Only PDF and DOC/DOCX files are allowed');
+      }
     }
   };
 
@@ -58,19 +80,19 @@ const ResumeUploader = ({ onUpload }) => {
             Upload your resume
           </h3>
           <p className="text-textSecondary mb-4">
-            Drag and drop your PDF file here, or click to browse
+            Drag and drop your resume file here, or click to browse
           </p>
           <label className="inline-block bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors cursor-pointer font-medium">
             Choose File
             <input
               type="file"
-              accept=".pdf"
+              accept=".pdf,.doc,.docx"
               onChange={handleFileChange}
               className="hidden"
             />
           </label>
           <p className="text-xs text-textSecondary mt-3">
-            PDF files only, max 5MB
+            PDF, DOC, or DOCX files only, max 5MB
           </p>
         </div>
       ) : (
@@ -97,16 +119,14 @@ const ResumeUploader = ({ onUpload }) => {
             </button>
           </div>
           <div className="mt-4 flex gap-3">
-            <button className="flex-1 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors font-medium">
-              Upload Resume
-            </button>
             <label className="flex-1 bg-gray-100 text-textPrimary px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer font-medium text-center">
               Change File
               <input
                 type="file"
-                accept=".pdf"
+                accept=".pdf,.doc,.docx"
                 onChange={handleFileChange}
                 className="hidden"
+                disabled={uploading}
               />
             </label>
           </div>

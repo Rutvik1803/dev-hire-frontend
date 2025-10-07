@@ -18,10 +18,14 @@ class ApiError extends Error {
 export const apiRequest = async (endpoint, options = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
 
+  // Check if body is FormData (for file uploads)
+  const isFormData = options.body instanceof FormData;
+
   const config = {
     ...options,
     headers: {
-      'Content-Type': 'application/json',
+      // Don't set Content-Type for FormData - let browser set it with boundary
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...options.headers,
     },
     credentials: 'include', // Important: Include cookies for refreshToken
@@ -71,10 +75,13 @@ export const get = (endpoint, options = {}) => {
  * POST request helper
  */
 export const post = (endpoint, data, options = {}) => {
+  // Don't stringify FormData
+  const body = data instanceof FormData ? data : JSON.stringify(data);
+
   return apiRequest(endpoint, {
     ...options,
     method: 'POST',
-    body: JSON.stringify(data),
+    body,
   });
 };
 

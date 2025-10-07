@@ -1,15 +1,74 @@
 import { Link } from 'react-router-dom';
-import { mockDeveloperApplications, dashboardStats } from '../../data/mockData';
+import { useState, useEffect } from 'react';
 import StatusBadge from '../../components/StatusBadge';
+import Loading from '../../components/Loading';
+import Toast from '../../components/Toast';
 import {
   BriefcaseIcon,
   ClockIcon,
   CheckCircleIcon,
   XCircleIcon,
 } from '@heroicons/react/24/outline';
+import {
+  getDeveloperDashboardStats,
+  getRecentApplications,
+} from '../../services/developerService';
 
 const DeveloperDashboard = () => {
-  const stats = dashboardStats.developer;
+  const [stats, setStats] = useState(null);
+  const [recentApplications, setRecentApplications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState(null);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    try {
+      const [statsData, applicationsData] = await Promise.all([
+        getDeveloperDashboardStats(),
+        getRecentApplications(5),
+      ]);
+
+      setStats(statsData);
+      setRecentApplications(applicationsData);
+    } catch (error) {
+      let errorMessage = 'Failed to load dashboard data.';
+
+      if (error.status === 0) {
+        errorMessage = 'Cannot connect to server. Please try again later.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      setToast({
+        type: 'error',
+        message: errorMessage,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return <Loading />;
+  }
+
+  if (!stats) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-textSecondary">Failed to load dashboard data</p>
+        <button
+          onClick={fetchDashboardData}
+          className="mt-4 px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   const statCards = [
     {
@@ -56,7 +115,7 @@ const DeveloperDashboard = () => {
           return (
             <div
               key={index}
-              className="bg-surface rounded-xl shadow-sm border border-border p-6"
+              className="bg-surface rounded-xl shadow-sm border border-border p-6 hover:shadow-md transition-shadow"
             >
               <div className="flex items-center justify-between mb-4">
                 <div
@@ -89,34 +148,46 @@ const DeveloperDashboard = () => {
         </div>
 
         <div className="space-y-4">
-          {mockDeveloperApplications.map((application) => (
-            <div
-              key={application.id}
-              className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg border border-border hover:border-primary/50 transition-colors"
-            >
-              <div className="mb-3 sm:mb-0">
-                <h3 className="font-semibold text-textPrimary mb-1">
-                  {application.jobTitle}
-                </h3>
-                <p className="text-textSecondary text-sm">
-                  {application.company}
-                </p>
-                <p className="text-textSecondary text-xs mt-1">
-                  Applied on{' '}
-                  {new Date(application.appliedDate).toLocaleDateString()}
-                </p>
+          {recentApplications.length > 0 ? (
+            recentApplications.map((application) => (
+              <div
+                key={application.id}
+                className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg border border-border hover:border-primary/50 transition-colors"
+              >
+                <div className="mb-3 sm:mb-0">
+                  <h3 className="font-semibold text-textPrimary mb-1">
+                    {application.job.title}
+                  </h3>
+                  <p className="text-textSecondary text-sm">
+                    {application.job.companyName}
+                  </p>
+                  <p className="text-textSecondary text-xs mt-1">
+                    Applied on{' '}
+                    {new Date(application.appliedDate).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <StatusBadge status={application.status} />
+                  <Link
+                    to={`/developer/jobs/${application.jobId}`}
+                    className="text-primary hover:underline text-sm font-medium"
+                  >
+                    View Job
+                  </Link>
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                <StatusBadge status={application.status} />
-                <Link
-                  to={`/developer/jobs/${application.jobId}`}
-                  className="text-primary hover:underline text-sm font-medium"
-                >
-                  View Job
-                </Link>
-              </div>
+            ))
+          ) : (
+            <div className="text-center py-8 text-textSecondary">
+              <p>No applications yet</p>
+              <Link
+                to="/developer/jobs"
+                className="inline-block mt-3 text-primary hover:underline font-medium"
+              >
+                Browse jobs and start applying
+              </Link>
             </div>
-          ))}
+          )}
         </div>
       </div>
 
@@ -143,6 +214,15 @@ const DeveloperDashboard = () => {
           <p className="text-textSecondary">Keep your resume up to date</p>
         </Link>
       </div>
+
+      {/* Toast notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 };
