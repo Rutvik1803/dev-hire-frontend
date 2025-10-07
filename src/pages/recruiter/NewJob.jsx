@@ -1,16 +1,18 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Toast from '../../components/Toast';
+import { createJob, convertJobType } from '../../services/jobService';
 
 const NewJob = () => {
   const navigate = useNavigate();
-  const [showToast, setShowToast] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
-    company: '',
+    companyName: '',
     location: '',
-    type: 'Full-time',
-    salary: '',
+    jobType: 'FULL_TIME',
+    salaryRange: '',
     skills: '',
     description: '',
   });
@@ -22,12 +24,74 @@ const NewJob = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setShowToast(true);
-    setTimeout(() => {
-      navigate('/recruiter/jobs');
-    }, 2000);
+    setLoading(true);
+    setToast(null);
+
+    try {
+      // Parse skills from comma-separated string
+      const skillsArray = formData.skills
+        .split(',')
+        .map((skill) => skill.trim())
+        .filter((skill) => skill.length > 0);
+
+      // Validate skills
+      if (skillsArray.length === 0) {
+        setToast({
+          type: 'error',
+          message: 'Please enter at least one required skill.',
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Prepare job data
+      const jobData = {
+        title: formData.title,
+        companyName: formData.companyName,
+        location: formData.location,
+        jobType: formData.jobType,
+        salaryRange: formData.salaryRange,
+        requiredSkills: skillsArray,
+        description: formData.description,
+      };
+
+      // Create job via API
+      await createJob(jobData);
+
+      // Show success message
+      setToast({
+        type: 'success',
+        message: 'Job posted successfully! Redirecting...',
+      });
+
+      // Navigate after short delay
+      setTimeout(() => {
+        navigate('/recruiter/jobs');
+      }, 1500);
+    } catch (error) {
+      // Handle errors
+      let errorMessage = 'Failed to post job. Please try again.';
+
+      if (error.status === 400) {
+        errorMessage = error.message || 'Please check all required fields.';
+      } else if (error.status === 401) {
+        errorMessage = 'Please log in to post a job.';
+      } else if (error.status === 403) {
+        errorMessage = 'You do not have permission to post jobs.';
+      } else if (error.status === 0) {
+        errorMessage = 'Cannot connect to server. Please try again later.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      setToast({
+        type: 'error',
+        message: errorMessage,
+      });
+      setLoading(false);
+    }
   };
 
   return (
@@ -69,12 +133,13 @@ const NewJob = () => {
             </label>
             <input
               type="text"
-              name="company"
-              value={formData.company}
+              name="companyName"
+              value={formData.companyName}
               onChange={handleChange}
               placeholder="e.g. TechCorp Inc."
               className="w-full px-4 py-3 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary"
               required
+              disabled={loading}
             />
           </div>
 
@@ -92,6 +157,7 @@ const NewJob = () => {
                 placeholder="e.g. San Francisco, CA or Remote"
                 className="w-full px-4 py-3 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                 required
+                disabled={loading}
               />
             </div>
             <div>
@@ -99,16 +165,17 @@ const NewJob = () => {
                 Job Type <span className="text-red-500">*</span>
               </label>
               <select
-                name="type"
-                value={formData.type}
+                name="jobType"
+                value={formData.jobType}
                 onChange={handleChange}
                 className="w-full px-4 py-3 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                 required
+                disabled={loading}
               >
-                <option value="Full-time">Full-time</option>
-                <option value="Part-time">Part-time</option>
-                <option value="Contract">Contract</option>
-                <option value="Internship">Internship</option>
+                <option value="FULL_TIME">Full-time</option>
+                <option value="PART_TIME">Part-time</option>
+                <option value="CONTRACT">Contract</option>
+                <option value="INTERNSHIP">Internship</option>
               </select>
             </div>
           </div>
@@ -116,15 +183,17 @@ const NewJob = () => {
           {/* Salary Range */}
           <div>
             <label className="block text-sm font-semibold text-textPrimary mb-2">
-              Salary Range
+              Salary Range <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
-              name="salary"
-              value={formData.salary}
+              name="salaryRange"
+              value={formData.salaryRange}
               onChange={handleChange}
-              placeholder="e.g. $100k - $150k"
+              placeholder="e.g. $100,000 - $150,000"
               className="w-full px-4 py-3 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary"
+              required
+              disabled={loading}
             />
           </div>
 
@@ -141,6 +210,7 @@ const NewJob = () => {
               placeholder="e.g. React, TypeScript, Node.js (comma separated)"
               className="w-full px-4 py-3 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary"
               required
+              disabled={loading}
             />
             <p className="text-xs text-textSecondary mt-1">
               Separate skills with commas
@@ -160,6 +230,7 @@ const NewJob = () => {
               rows="6"
               className="w-full px-4 py-3 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary resize-none"
               required
+              disabled={loading}
             ></textarea>
           </div>
 
@@ -168,25 +239,27 @@ const NewJob = () => {
             <button
               type="button"
               onClick={() => navigate('/recruiter/jobs')}
-              className="flex-1 bg-gray-100 text-textPrimary px-6 py-3 rounded-lg hover:bg-gray-200 transition-colors font-semibold"
+              disabled={loading}
+              className="flex-1 bg-gray-100 text-textPrimary px-6 py-3 rounded-lg hover:bg-gray-200 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors font-semibold"
+              disabled={loading}
+              className="flex-1 bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Post Job
+              {loading ? 'Posting Job...' : 'Post Job'}
             </button>
           </div>
         </div>
       </form>
 
-      {showToast && (
+      {toast && (
         <Toast
-          message="Job posted successfully!"
-          type="success"
-          onClose={() => setShowToast(false)}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
         />
       )}
     </div>

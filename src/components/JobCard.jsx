@@ -4,6 +4,7 @@ import {
   BriefcaseIcon,
   CurrencyDollarIcon,
 } from '@heroicons/react/24/outline';
+import { convertJobTypeToFrontend } from '../services/jobService';
 
 const JobCard = ({ job, showActions = true, actionButton }) => {
   return (
@@ -13,13 +14,10 @@ const JobCard = ({ job, showActions = true, actionButton }) => {
           <h3 className="text-lg font-semibold text-textPrimary mb-1">
             {job.title}
           </h3>
-          <p className="text-textSecondary font-medium">{job.company}</p>
+          <p className="text-textSecondary font-medium">
+            {job.companyName || job.company}
+          </p>
         </div>
-        {job.status && (
-          <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-            {job.status}
-          </span>
-        )}
       </div>
 
       <div className="space-y-2 mb-4">
@@ -29,25 +27,32 @@ const JobCard = ({ job, showActions = true, actionButton }) => {
         </div>
         <div className="flex items-center text-sm text-textSecondary">
           <BriefcaseIcon className="w-4 h-4 mr-2" />
-          {job.type}
+          {job.jobType ? convertJobTypeToFrontend(job.jobType) : job.type}
         </div>
-        {job.salary && (
+        {(job.salaryRange || job.salary) && (
           <div className="flex items-center text-sm text-textSecondary">
             <CurrencyDollarIcon className="w-4 h-4 mr-2" />
-            {job.salary}
+            {job.salaryRange || job.salary}
           </div>
         )}
       </div>
 
       <div className="flex flex-wrap gap-2 mb-4">
-        {job.skills?.slice(0, 4).map((skill, index) => (
-          <span
-            key={index}
-            className="px-3 py-1 bg-primary/10 text-primary rounded-lg text-xs font-medium"
-          >
-            {skill}
+        {(job.requiredSkills || job.skills || [])
+          .slice(0, 4)
+          .map((skill, index) => (
+            <span
+              key={index}
+              className="px-3 py-1 bg-primary/10 text-primary rounded-lg text-xs font-medium"
+            >
+              {skill}
+            </span>
+          ))}
+        {(job.requiredSkills || job.skills || []).length > 4 && (
+          <span className="px-3 py-1 bg-gray-100 text-textSecondary rounded-lg text-xs font-medium">
+            +{(job.requiredSkills || job.skills).length - 4} more
           </span>
-        ))}
+        )}
       </div>
 
       {showActions && (

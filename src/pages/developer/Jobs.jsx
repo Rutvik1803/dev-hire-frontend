@@ -1,27 +1,69 @@
-import { useState } from 'react';
-import { mockJobs } from '../../data/mockData';
+import { useState, useEffect } from 'react';
 import JobCard from '../../components/JobCard';
 import {
   MagnifyingGlassIcon,
   AdjustmentsHorizontalIcon,
 } from '@heroicons/react/24/outline';
+import { getAllJobs } from '../../services/jobService';
+import Loading from '../../components/Loading';
+import Toast from '../../components/Toast';
 
 const DeveloperJobs = () => {
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState('all');
   const [selectedSkill, setSelectedSkill] = useState('all');
 
-  const allSkills = [...new Set(mockJobs.flatMap((job) => job.skills))];
+  // Fetch jobs on mount
+  useEffect(() => {
+    fetchJobs();
+  }, []);
 
-  const filteredJobs = mockJobs.filter((job) => {
+  const fetchJobs = async () => {
+    setLoading(true);
+    try {
+      const data = await getAllJobs();
+      setJobs(data);
+    } catch (error) {
+      let errorMessage = 'Failed to load jobs. Please try again.';
+
+      if (error.status === 0) {
+        errorMessage = 'Cannot connect to server. Please try again later.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      setToast({
+        type: 'error',
+        message: errorMessage,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Extract all unique skills from jobs
+  const allSkills = [
+    ...new Set(jobs.flatMap((job) => job.requiredSkills || [])),
+  ];
+
+  // Filter jobs based on search and filters
+  const filteredJobs = jobs.filter((job) => {
     const matchesSearch =
       job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      job.company.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = selectedType === 'all' || job.type === selectedType;
+      job.companyName.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesType = selectedType === 'all' || job.jobType === selectedType;
     const matchesSkill =
-      selectedSkill === 'all' || job.skills.includes(selectedSkill);
+      selectedSkill === 'all' ||
+      (job.requiredSkills || []).includes(selectedSkill);
     return matchesSearch && matchesType && matchesSkill;
   });
+
+  if (loading) {
+    return <Loading />;
+  }
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -30,7 +72,7 @@ const DeveloperJobs = () => {
           Browse Jobs
         </h1>
         <p className="text-textSecondary">
-          Find your next opportunity from {mockJobs.length} available positions
+          Find your next opportunity from {jobs.length} available positions
         </p>
       </div>
 
@@ -59,9 +101,10 @@ const DeveloperJobs = () => {
                 className="pl-10 pr-8 py-3 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary appearance-none bg-white cursor-pointer"
               >
                 <option value="all">All Types</option>
-                <option value="Full-time">Full-time</option>
-                <option value="Part-time">Part-time</option>
-                <option value="Contract">Contract</option>
+                <option value="FULL_TIME">Full-time</option>
+                <option value="PART_TIME">Part-time</option>
+                <option value="CONTRACT">Contract</option>
+                <option value="INTERNSHIP">Internship</option>
               </select>
             </div>
 
@@ -112,19 +155,34 @@ const DeveloperJobs = () => {
       ) : (
         <div className="bg-surface rounded-xl shadow-sm border border-border p-12 text-center">
           <p className="text-textSecondary text-lg">
-            No jobs found matching your criteria
+            {jobs.length === 0
+              ? 'No jobs available at the moment'
+              : 'No jobs found matching your criteria'}
           </p>
-          <button
-            onClick={() => {
-              setSearchQuery('');
-              setSelectedType('all');
-              setSelectedSkill('all');
-            }}
-            className="mt-4 text-primary hover:underline font-medium"
-          >
-            Clear all filters
-          </button>
+          {(searchQuery ||
+            selectedType !== 'all' ||
+            selectedSkill !== 'all') && (
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedType('all');
+                setSelectedSkill('all');
+              }}
+              className="mt-4 text-primary hover:underline font-medium"
+            >
+              Clear all filters
+            </button>
+          )}
         </div>
+      )}
+
+      {/* Toast notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
       )}
     </div>
   );
