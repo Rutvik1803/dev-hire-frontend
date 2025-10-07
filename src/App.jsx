@@ -21,6 +21,7 @@ import Resume from './pages/developer/Resume';
 import RecruiterDashboard from './pages/recruiter/Dashboard';
 import RecruiterJobs from './pages/recruiter/Jobs';
 import NewJob from './pages/recruiter/NewJob';
+import EditJob from './pages/recruiter/EditJob';
 import JobApplicants from './pages/recruiter/JobApplicants';
 import ApplicantDetails from './pages/recruiter/ApplicantDetails';
 
@@ -60,7 +61,8 @@ function App() {
             />
             <Route path="/recruiter/jobs" element={<RecruiterJobs />} />
             <Route path="/recruiter/jobs/new" element={<NewJob />} />
-            <Route path="/recruiter/jobs/:id" element={<JobApplicants />} />
+            <Route path="/recruiter/jobs/edit/:id" element={<EditJob />} />
+            <Route path="/recruiter/jobs/:id/applicants" element={<JobApplicants />} />
             <Route
               path="/recruiter/applicants/:id"
               element={<ApplicantDetails />}

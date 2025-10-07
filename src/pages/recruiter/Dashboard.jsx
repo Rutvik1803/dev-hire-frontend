@@ -1,16 +1,60 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { mockJobs, mockApplicants, dashboardStats } from '../../data/mockData';
 import {
   BriefcaseIcon,
   UsersIcon,
   ClockIcon,
   CheckCircleIcon,
 } from '@heroicons/react/24/outline';
+import { getDashboardStats, getRecentApplications, getStatusDisplay, getStatusColor } from '../../services/applicationService';
+import { getMyJobs } from '../../services/jobService';
+import Loading from '../../components/Loading';
+import Toast from '../../components/Toast';
 
 const RecruiterDashboard = () => {
-  const stats = dashboardStats.recruiter;
-  const recentJobs = mockJobs.slice(0, 3);
-  const recentApplicants = mockApplicants.slice(0, 4);
+  const [stats, setStats] = useState({
+    jobsPosted: 0,
+    totalApplicants: 0,
+    inReview: 0,
+    hired: 0,
+  });
+  const [recentJobs, setRecentJobs] = useState([]);
+  const [recentApplicants, setRecentApplicants] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [showToast, setShowToast] = useState(false);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      // Fetch all data in parallel
+      const [statsData, jobsData, applicantsData] = await Promise.all([
+        getDashboardStats(),
+        getMyJobs(),
+        getRecentApplications(5),
+      ]);
+
+      setStats(statsData);
+      setRecentJobs(jobsData.slice(0, 3)); // Get first 3 jobs
+      setRecentApplicants(applicantsData);
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      setError(err.message || 'Failed to load dashboard data');
+      setShowToast(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return <Loading />;
+  }
 
   const statCards = [
     {
@@ -57,7 +101,7 @@ const RecruiterDashboard = () => {
           return (
             <div
               key={index}
-              className="bg-surface rounded-xl shadow-sm border border-border p-6"
+              className="bg-surface rounded-xl shadow-sm border border-border p-6 hover:shadow-md transition-shadow"
             >
               <div className="flex items-center justify-between mb-4">
                 <div
@@ -90,28 +134,34 @@ const RecruiterDashboard = () => {
             </Link>
           </div>
           <div className="space-y-4">
-            {recentJobs.map((job) => (
-              <Link
-                key={job.id}
-                to={`/recruiter/jobs/${job.id}`}
-                className="block p-4 rounded-lg border border-border hover:border-primary/50 transition-colors"
-              >
-                <h3 className="font-semibold text-textPrimary mb-1">
-                  {job.title}
-                </h3>
-                <p className="text-textSecondary text-sm mb-2">
-                  {job.location}
-                </p>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-textSecondary">
-                    {job.applicants} applicants
-                  </span>
-                  <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
-                    {job.status}
-                  </span>
-                </div>
-              </Link>
-            ))}
+            {recentJobs.length > 0 ? (
+              recentJobs.map((job) => (
+                <Link
+                  key={job.id}
+                  to={`/recruiter/jobs/${job.id}/applicants`}
+                  className="block p-4 rounded-lg border border-border hover:border-primary/50 transition-colors"
+                >
+                  <h3 className="font-semibold text-textPrimary mb-1">
+                    {job.title}
+                  </h3>
+                  <p className="text-textSecondary text-sm mb-2">
+                    {job.location} • {job.companyName}
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-textSecondary">
+                      Posted on {new Date(job.createdAt).toLocaleDateString()}
+                    </span>
+                    <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
+                      Active
+                    </span>
+                  </div>
+                </Link>
+              ))
+            ) : (
+              <p className="text-textSecondary text-center py-8">
+                No jobs posted yet
+              </p>
+            )}
           </div>
         </div>
 
@@ -129,35 +179,34 @@ const RecruiterDashboard = () => {
             </Link>
           </div>
           <div className="space-y-4">
-            {recentApplicants.map((applicant) => (
-              <Link
-                key={applicant.id}
-                to={`/recruiter/applicants/${applicant.id}`}
-                className="block p-4 rounded-lg border border-border hover:border-primary/50 transition-colors"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-textPrimary">
-                    {applicant.name}
-                  </h3>
-                  <span
-                    className={`px-2 py-1 rounded text-xs font-medium ${
-                      applicant.status === 'Accepted'
-                        ? 'bg-green-100 text-green-700'
-                        : applicant.status === 'Rejected'
-                        ? 'bg-red-100 text-red-700'
-                        : applicant.status === 'In Review'
-                        ? 'bg-yellow-100 text-yellow-700'
-                        : 'bg-blue-100 text-blue-700'
-                    }`}
-                  >
-                    {applicant.status}
-                  </span>
-                </div>
-                <p className="text-textSecondary text-sm">
-                  {applicant.jobTitle}
-                </p>
-              </Link>
-            ))}
+            {recentApplicants.length > 0 ? (
+              recentApplicants.map((application) => (
+                <Link
+                  key={application.id}
+                  to={`/recruiter/applicants/${application.id}`}
+                  className="block p-4 rounded-lg border border-border hover:border-primary/50 transition-colors"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold text-textPrimary">
+                      {application.applicant.name}
+                    </h3>
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(application.status)}`}>
+                      {getStatusDisplay(application.status)}
+                    </span>
+                  </div>
+                  <p className="text-textSecondary text-sm">
+                    {application.job.title}
+                  </p>
+                  <p className="text-textSecondary text-xs mt-1">
+                    Applied {new Date(application.appliedDate).toLocaleDateString()}
+                  </p>
+                </Link>
+              ))
+            ) : (
+              <p className="text-textSecondary text-center py-8">
+                No recent applications
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -187,6 +236,14 @@ const RecruiterDashboard = () => {
           </p>
         </Link>
       </div>
+
+      {showToast && error && (
+        <Toast
+          message={error}
+          type="error"
+          onClose={() => setShowToast(false)}
+        />
+      )}
     </div>
   );
 };

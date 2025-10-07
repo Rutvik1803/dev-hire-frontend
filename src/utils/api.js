@@ -99,6 +99,17 @@ export const del = (endpoint, options = {}) => {
   });
 };
 
+/**
+ * PATCH request helper
+ */
+export const patch = (endpoint, data, options = {}) => {
+  return apiRequest(endpoint, {
+    ...options,
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+};
+
 export default {
   get,
   post,
