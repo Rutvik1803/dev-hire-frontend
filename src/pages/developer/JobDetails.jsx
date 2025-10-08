@@ -9,11 +9,13 @@ import {
   PaperAirplaneIcon,
   CheckCircleIcon,
   AcademicCapIcon,
+  SparklesIcon,
 } from '@heroicons/react/24/outline';
 import Toast from '../../components/Toast';
 import Loading from '../../components/Loading';
 import StatusBadge from '../../components/StatusBadge';
 import AIInterviewModal from '../../components/AIInterviewModal';
+import { generateCoverLetter } from '../../services/coverLetterService';
 import {
   getJobById,
   convertJobTypeToFrontend,
@@ -22,9 +24,11 @@ import {
   checkApplicationStatus,
   applyToJob,
 } from '../../services/developerService';
+import { useAuth } from '../../context/AuthContext';
 
 const JobDetails = () => {
   const { id } = useParams();
+  const { user } = useAuth();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
@@ -34,6 +38,7 @@ const JobDetails = () => {
   const [coverLetter, setCoverLetter] = useState('');
   const [showAIInterviewModal, setShowAIInterviewModal] = useState(false);
   const [showPrepareButton, setShowPrepareButton] = useState(false);
+  const [generatingCoverLetter, setGeneratingCoverLetter] = useState(false);
 
   useEffect(() => {
     fetchJobDetails();
@@ -126,6 +131,44 @@ const JobDetails = () => {
 
   const handlePrepareInterview = () => {
     setShowAIInterviewModal(true);
+  };
+
+  const handleGenerateCoverLetter = async () => {
+    setGeneratingCoverLetter(true);
+    try {
+      const userDetails = {
+        name: user?.name || '',
+        email: user?.email || '',
+      };
+
+      const jobDescription = {
+        title: job?.title || '',
+        companyName: job?.companyName || '',
+        description: job?.description || '',
+        requiredSkills: job?.requiredSkills || [],
+        location: job?.location || '',
+        jobType: job?.jobType || '',
+      };
+
+      const data = await generateCoverLetter(userDetails, jobDescription);
+
+      if (data?.coverLetter) {
+        setCoverLetter(data.coverLetter);
+        setToast({
+          type: 'success',
+          message: 'Cover letter generated! Feel free to edit it.',
+        });
+      }
+    } catch (error) {
+      console.error('Error generating cover letter:', error);
+      setToast({
+        type: 'error',
+        message:
+          error.message || 'Failed to generate cover letter. Please try again.',
+      });
+    } finally {
+      setGeneratingCoverLetter(false);
+    }
   };
 
   if (loading) {
@@ -313,9 +356,19 @@ const JobDetails = () => {
             </div>
 
             <div className="p-6">
-              <label className="block text-sm font-semibold text-textPrimary mb-2">
-                Cover Letter <span className="text-red-500">*</span>
-              </label>
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-sm font-semibold text-textPrimary">
+                  Cover Letter <span className="text-red-500">*</span>
+                </label>
+                <button
+                  onClick={handleGenerateCoverLetter}
+                  disabled={applying || generatingCoverLetter}
+                  className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <SparklesIcon className="w-4 h-4" />
+                  {generatingCoverLetter ? 'Generating...' : 'Generate with AI'}
+                </button>
+              </div>
               <textarea
                 value={coverLetter}
                 onChange={(e) => setCoverLetter(e.target.value)}
