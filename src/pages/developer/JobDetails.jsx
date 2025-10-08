@@ -8,10 +8,12 @@ import {
   ArrowLeftIcon,
   PaperAirplaneIcon,
   CheckCircleIcon,
+  AcademicCapIcon,
 } from '@heroicons/react/24/outline';
 import Toast from '../../components/Toast';
 import Loading from '../../components/Loading';
 import StatusBadge from '../../components/StatusBadge';
+import AIInterviewModal from '../../components/AIInterviewModal';
 import {
   getJobById,
   convertJobTypeToFrontend,
@@ -30,6 +32,8 @@ const JobDetails = () => {
   const [applying, setApplying] = useState(false);
   const [showCoverLetterModal, setShowCoverLetterModal] = useState(false);
   const [coverLetter, setCoverLetter] = useState('');
+  const [showAIInterviewModal, setShowAIInterviewModal] = useState(false);
+  const [showPrepareButton, setShowPrepareButton] = useState(false);
 
   useEffect(() => {
     fetchJobDetails();
@@ -92,6 +96,9 @@ const JobDetails = () => {
       setShowCoverLetterModal(false);
       setCoverLetter('');
 
+      // Show the "Prepare for Interview" button
+      setShowPrepareButton(true);
+
       // Refresh application status
       const statusData = await checkApplicationStatus(id);
       setApplicationStatus(statusData);
@@ -115,6 +122,10 @@ const JobDetails = () => {
     } finally {
       setApplying(false);
     }
+  };
+
+  const handlePrepareInterview = () => {
+    setShowAIInterviewModal(true);
   };
 
   if (loading) {
@@ -206,13 +217,24 @@ const JobDetails = () => {
 
         <div className="flex flex-col sm:flex-row gap-4">
           {applicationStatus?.hasApplied ? (
-            <div className="flex-1 bg-green-50 border border-green-200 text-green-700 px-6 py-3 rounded-lg flex items-center justify-center gap-2">
-              <CheckCircleIcon className="w-5 h-5" />
-              <span className="font-semibold">Applied</span>
-              {applicationStatus.application && (
-                <StatusBadge status={applicationStatus.application.status} />
+            <>
+              <div className="flex-1 bg-green-50 border border-green-200 text-green-700 px-6 py-3 rounded-lg flex items-center justify-center gap-2">
+                <CheckCircleIcon className="w-5 h-5" />
+                <span className="font-semibold">Applied</span>
+                {applicationStatus.application && (
+                  <StatusBadge status={applicationStatus.application.status} />
+                )}
+              </div>
+              {job.requiredSkills && job.requiredSkills.length > 0 && (
+                <button
+                  onClick={handlePrepareInterview}
+                  className="flex-1 bg-gradient-to-r from-primary to-secondary text-white px-6 py-3 rounded-lg hover:opacity-90 transition-opacity font-semibold flex items-center justify-center gap-2"
+                >
+                  <AcademicCapIcon className="w-5 h-5" />
+                  Prepare for Interview
+                </button>
               )}
-            </div>
+            </>
           ) : (
             <button
               onClick={handleApplyClick}
@@ -228,6 +250,35 @@ const JobDetails = () => {
             Save for Later
           </button>
         </div>
+
+        {/* Show Prepare Button after successful application */}
+        {showPrepareButton &&
+          job.requiredSkills &&
+          job.requiredSkills.length > 0 && (
+            <div className="mt-4 p-4 bg-gradient-to-r from-primary/10 to-secondary/10 border-2 border-primary/20 rounded-lg">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="bg-primary/20 p-3 rounded-full">
+                    <AcademicCapIcon className="w-6 h-6 text-primary" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="font-semibold text-textPrimary">
+                      Ready to ace your interview?
+                    </h3>
+                    <p className="text-sm text-textSecondary">
+                      Test your skills with our AI-powered practice interview
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={handlePrepareInterview}
+                  className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors font-medium whitespace-nowrap"
+                >
+                  Start Practice
+                </button>
+              </div>
+            </div>
+          )}
       </div>
 
       <div className="bg-surface rounded-xl shadow-sm border border-border p-6">
@@ -299,6 +350,14 @@ const JobDetails = () => {
           </div>
         </div>
       )}
+
+      {/* AI Interview Modal */}
+      <AIInterviewModal
+        isOpen={showAIInterviewModal}
+        onClose={() => setShowAIInterviewModal(false)}
+        techStack={job?.requiredSkills || []}
+        jobTitle={job?.title || ''}
+      />
 
       {/* Toast notification */}
       {toast && (

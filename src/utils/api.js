@@ -52,6 +52,13 @@ export const apiRequest = async (endpoint, options = {}) => {
 
     return data;
   } catch (error) {
+    // Check if request was aborted
+    if (error.name === 'AbortError') {
+      const abortError = new Error('Request cancelled');
+      abortError.name = 'AbortError';
+      throw abortError;
+    }
+
     if (error instanceof ApiError) {
       throw error;
     }
