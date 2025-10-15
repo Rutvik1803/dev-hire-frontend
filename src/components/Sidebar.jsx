@@ -28,6 +28,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const getRecruiterLinks = () => [
     { to: '/recruiter/dashboard', icon: HomeIcon, label: 'Dashboard' },
     { to: '/recruiter/jobs', icon: BriefcaseIcon, label: 'My Jobs' },
+    { to: '/recruiter/applicants', icon: UsersIcon, label: 'All Applicants' },
     { to: '/recruiter/jobs/new', icon: PlusCircleIcon, label: 'Post New Job' },
   ];
 

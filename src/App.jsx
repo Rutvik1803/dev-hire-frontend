@@ -17,6 +17,7 @@ import DeveloperJobs from './pages/developer/Jobs';
 import JobDetails from './pages/developer/JobDetails';
 import Resume from './pages/developer/Resume';
 import MyApplications from './pages/developer/MyApplications';
+import ApplicationDetails from './pages/developer/ApplicationDetails';
 
 // Recruiter Pages
 import RecruiterDashboard from './pages/recruiter/Dashboard';
@@ -25,6 +26,7 @@ import NewJob from './pages/recruiter/NewJob';
 import EditJob from './pages/recruiter/EditJob';
 import JobApplicants from './pages/recruiter/JobApplicants';
 import ApplicantDetails from './pages/recruiter/ApplicantDetails';
+import Applicants from './pages/recruiter/Applicants';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard';
@@ -55,6 +57,10 @@ function App() {
               path="/developer/applications"
               element={<MyApplications />}
             />
+            <Route
+              path="/developer/applications/:id"
+              element={<ApplicationDetails />}
+            />
             <Route path="/developer/resume" element={<Resume />} />
           </Route>
 
@@ -71,6 +77,7 @@ function App() {
               path="/recruiter/jobs/:id/applicants"
               element={<JobApplicants />}
             />
+            <Route path="/recruiter/applicants" element={<Applicants />} />
             <Route
               path="/recruiter/applicants/:id"
               element={<ApplicantDetails />}

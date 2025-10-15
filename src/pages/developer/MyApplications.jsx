@@ -230,10 +230,10 @@ const MyApplications = () => {
 
                   <div className="flex gap-2">
                     <Link
-                      to={`/developer/jobs/${application.job.id}`}
-                      className="px-4 py-2 bg-gray-100 text-textPrimary rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+                      to={`/developer/applications/${application.id}`}
+                      className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
                     >
-                      View Job
+                      View Details
                     </Link>
 
                     {canWithdraw(application.status) && (

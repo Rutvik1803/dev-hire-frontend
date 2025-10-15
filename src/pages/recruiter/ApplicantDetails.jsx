@@ -13,12 +13,20 @@ import {
   APPLICATION_STATUS,
   getStatusDisplay,
 } from '../../services/applicationService';
+import {
+  getInterviewByApplicationId,
+  scheduleInterview,
+  updateInterview,
+} from '../../services/interviewService';
 import Loading from '../../components/Loading';
 import Toast from '../../components/Toast';
+import InterviewCard from '../../components/InterviewCard';
+import ScheduleInterviewModal from '../../components/ScheduleInterviewModal';
 
 const ApplicantDetails = () => {
   const { id } = useParams();
   const [application, setApplication] = useState(null);
+  const [interview, setInterview] = useState(null);
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -26,6 +34,7 @@ const ApplicantDetails = () => {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('success');
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
 
   useEffect(() => {
     fetchApplicationDetails();
@@ -35,9 +44,23 @@ const ApplicantDetails = () => {
     try {
       setLoading(true);
       setError('');
-      const data = await getApplicationById(id);
-      setApplication(data);
-      setStatus(data.status);
+      const [appData, interviewData] = await Promise.all([
+        getApplicationById(id),
+        getInterviewByApplicationId(id),
+      ]);
+
+      console.log('Interview data received:', interviewData);
+
+      setApplication(appData);
+
+      // Only set interview if it exists and has valid data
+      if (interviewData && interviewData.scheduledDate) {
+        setInterview(interviewData);
+      } else {
+        setInterview(null);
+      }
+
+      setStatus(appData.status);
     } catch (err) {
       console.error('Error fetching application details:', err);
       setError(err.message || 'Failed to load application details');
@@ -73,6 +96,29 @@ const ApplicantDetails = () => {
       setShowToast(true);
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleScheduleInterview = async (interviewData) => {
+    try {
+      if (interview) {
+        // Update existing interview
+        await updateInterview(interview.id, interviewData);
+        setToastMessage('Interview rescheduled successfully!');
+      } else {
+        // Schedule new interview
+        await scheduleInterview(interviewData);
+        setToastMessage('Interview scheduled successfully!');
+      }
+
+      setToastType('success');
+      setShowToast(true);
+
+      // Refresh data
+      await fetchApplicationDetails();
+    } catch (err) {
+      console.error('Error scheduling interview:', err);
+      throw err; // Let modal handle the error
     }
   };
 
@@ -260,12 +306,41 @@ const ApplicantDetails = () => {
         </div>
       </div>
 
+      {/* Interview Section */}
+      {interview ? (
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold text-textPrimary mb-4">
+            Scheduled Interview
+          </h2>
+          <InterviewCard
+            interview={interview}
+            showEditButton={true}
+            onEdit={() => setShowScheduleModal(true)}
+          />
+        </div>
+      ) : (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center mb-6">
+          <p className="text-blue-700 mb-3">
+            No interview scheduled for this applicant yet
+          </p>
+          <button
+            onClick={() => setShowScheduleModal(true)}
+            className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors font-semibold"
+          >
+            Schedule Interview
+          </button>
+        </div>
+      )}
+
       {/* Actions */}
       <div className="bg-surface rounded-xl shadow-sm border border-border p-8">
         <h2 className="text-xl font-semibold text-textPrimary mb-4">Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button className="bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors font-semibold">
-            Schedule Interview
+          <button
+            onClick={() => setShowScheduleModal(true)}
+            className="bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors font-semibold"
+          >
+            {interview ? 'Reschedule Interview' : 'Schedule Interview'}
           </button>
           <a
             href={`mailto:${applicant.email}`}
@@ -286,6 +361,15 @@ const ApplicantDetails = () => {
           )}
         </div>
       </div>
+
+      {/* Schedule Interview Modal */}
+      <ScheduleInterviewModal
+        isOpen={showScheduleModal}
+        onClose={() => setShowScheduleModal(false)}
+        onSchedule={handleScheduleInterview}
+        existingInterview={interview}
+        applicationId={parseInt(id)}
+      />
 
       {showToast && (
         <Toast
